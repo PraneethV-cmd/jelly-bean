@@ -5,6 +5,9 @@ module JellyBean(
     char,
     string,
     jsTrue,
+    jsFalse,
+    jsNull,
+    jsValue,
     JSON(..)
 ) where  
 
@@ -25,9 +28,34 @@ string (c:cs) = Parser $ \text -> do
     pure (c:cs, rest')
 
 data JSON
-    = JsTrue
+    = JsBool Bool
+    | JsNull
     deriving (Show, Eq)
 
+jsValue :: Parser JSON 
+jsValue = Parser $ \text -> 
+    case parse jsTrue text of   
+        Just (val, rest) -> Just (val, rest)
+        Nothing -> 
+            case parse jsFalse text of 
+                Just (val, rest) -> Just (val, rest) 
+                Nothing  -> 
+                    case parse jsNull text of 
+                        Just (val, rest) -> Just (val, rest) 
+                        Nothing -> Nothing
+
+jsTrue :: Parser JSON
 jsTrue = Parser $ \text -> do 
     (_, rest) <- parse (string "true") text 
-    pure (JsTrue, rest)
+    pure (JsBool True, rest)
+
+jsFalse :: Parser JSON
+jsFalse = Parser $ \text -> do 
+    (_, rest) <- parse (string "false") text 
+    pure (JsBool False, rest)
+
+jsNull :: Parser JSON
+jsNull = Parser $ \text -> do 
+    (_, rest) <- parse (string "null") text 
+    pure (JsNull, rest)
+

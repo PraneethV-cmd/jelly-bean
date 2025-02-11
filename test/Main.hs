@@ -1,6 +1,6 @@
 module Main where 
 
-import JellyBean (parse, char, string, jsTrue, JSON(..))
+import JellyBean (parse,char,string,jsValue,JSON(..))
 import Test.HUnit
 
 testCharA :: Test 
@@ -21,11 +21,24 @@ testStringA = TestCase $ do
 jsonTestA :: Test 
 jsonTestA = TestCase $ do 
     let s = "sometext"
-    let result = parse jsTrue ("true " ++ s) 
-    assertEqual "Parsing or detecting 'true':" (Just(JsTrue," " ++ s)) result
+    let result = parse jsValue ("true " ++ s) 
+    assertEqual "Parsing or detecting 'true':" (Just(JsBool True," " ++ s)) result
+
+jsonTestB :: Test 
+jsonTestB = TestCase $ do 
+    let s = "sometext"
+    let result = parse jsValue ("false " ++ s)
+    assertEqual "Parsing or detecting false:" (Just (JsBool False, " " ++ s)) result
+
+jsonTestC :: Test 
+jsonTestC = TestCase $ do 
+    let s = "sometext"
+    let result = parse jsValue ("null " ++ s)
+    assertEqual "Parsing or detecting null:" (Just(JsNull, " " ++ s)) result
+
 
 tests :: Test 
-tests = TestList [testCharA, testCharB, testStringA, jsonTestA]
+tests = TestList [testCharA, testCharB, testStringA, jsonTestA, jsonTestB, jsonTestC]
 
 main :: IO () 
 main = do  
