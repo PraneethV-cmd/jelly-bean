@@ -15,6 +15,17 @@ newtype Parser a = Parser {
     parse :: String -> Maybe (a, String) 
 }
 
+instance Functor Parser where 
+    fmap f (Parser p) = Parser $ \text ->
+        (\(v, rest) -> (f v, rest)) <$> p text 
+
+instance Applicative Parser where 
+    pure v = Parser $ \text -> Just (v, text)
+    pf <*> p = Parser $ \text -> do
+        (f, rest) <- parse pf text 
+        (v, rest') <- parse p text 
+        pure $ (f v, rest')
+
 char :: Char -> Parser Char 
 char c = Parser $ \case 
     (c' : rest) -> if c == c' then Just (c, rest) else Nothing
@@ -45,17 +56,10 @@ jsValue = Parser $ \text ->
                         Nothing -> Nothing
 
 jsTrue :: Parser JSON
-jsTrue = Parser $ \text -> do 
-    (_, rest) <- parse (string "true") text 
-    pure (JsBool True, rest)
+jsTrue = const (JsBool True) <$> string "true"
 
 jsFalse :: Parser JSON
-jsFalse = Parser $ \text -> do 
-    (_, rest) <- parse (string "false") text 
-    pure (JsBool False, rest)
+jsFalse = const (JsBool False) <$> string "false"
 
 jsNull :: Parser JSON
-jsNull = Parser $ \text -> do 
-    (_, rest) <- parse (string "null") text 
-    pure (JsNull, rest)
-
+jsNull = const JsNull <$> string "null"
