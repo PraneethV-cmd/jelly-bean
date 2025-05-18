@@ -144,6 +144,11 @@ instance Arbitrary JValue where
 	arbitrary = sized jValueGen
 	shrink    = genericShrink
 
+-- PARSERS 
+ 
+ newtype Parser i o =
+	Parser { runParser :: i -> Maybe (i,  o) }
+
 main :: IO () 
 main = do 
 	putStrLn "parser"
