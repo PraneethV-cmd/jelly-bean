@@ -173,6 +173,46 @@ instance Functor (Parser i) where
 digit :: Parser String Int 
 digit = digitToInt <$> satisfy isDigit
 
+string1 :: String -> Parser String String 
+string1 s = case s of 
+	"" -> Parser $ \i -> Just (i, "")
+	(c:cs) -> Parser $ \i -> case runParser (char c) i of 
+		Nothing -> Nothing 
+		Just (rest, _) -> case runParser (string1 cs) rest of 
+			Nothing -> Nothing 
+			Just (rest', _) -> Just (rest', c:cs)
+
+string2 :: String -> Parser String String 
+string2 s = case s of 
+	"" -> Parser $ pure . (, "")
+	(c:cs) -> Parser $ \i -> case runParser (char c) i of 
+		Nothing -> Nothing 
+		Just(rest, c) -> fmap (c:) <$> runParser (string2 cs) rest 
+
+instance Applicative (Parser i) where
+	pure x = Parser $ pure . (, x)
+	pf <*> po = Parser $ \input -> case runParser pf input of 
+		Nothing -> Nothing 
+		Just (rest, f) -> fmap f <$> runParser po rest 
+
+string :: String -> Parser String String 
+string "" = pure  "" 
+string (c:cs) = (:) <$> char c <*> string cs 
+
+jNull :: Parser String JValue 
+jNull = string "null" $> JNull
+
+instance Alternative (Parser i) where 
+	empty = Parser $ const empty 
+	p1 <|> p2 = Parser $ \input -> runParser p1 input <|> runParser p2 input 
+
+jBool :: Parser String JValue 
+jBool = string "true" $> JBool True 
+	<|> string "false" $> JBool False 
+
+jsonChar :: Parser String Char 
+jsonChar = string "\\\"" $> '"'
+
 main :: IO () 
 main = do 
 	putStrLn "parser"
