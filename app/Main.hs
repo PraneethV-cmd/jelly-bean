@@ -57,14 +57,6 @@ showJSONChar c = case c of
 		showJSONNonASCIIChar c = 
 			let a = "0000" ++ showHex (ord c) "" in drop (length a - 4) a 
 
-newtype Parser i o =
-	Parser { runParser :: i -> Maybe (i, o) } 
-
-char1 :: Char -> Parser String Char 
-char1 c = Parser $ \case 
-	(x:xs) | x == c -> Just (xs, x)
-	_		-> Nothing 
-
 
 -- now we make json generator using the QuickCheck Arbitrary typeclass where we 
 -- use that to make or generate for random values
@@ -146,9 +138,43 @@ instance Arbitrary JValue where
 
 -- PARSERS 
  
- newtype Parser i o =
+newtype Parser i o =
 	Parser { runParser :: i -> Maybe (i,  o) }
+
+char1 :: Char -> Parser String Char 
+char1 c = Parser $ \case 
+	(x:xs) | x == c -> Just (xs, x)
+	_ -> Nothing
+
+satisfy :: (a -> Bool) -> Parser [a] a 
+satisfy predicate = Parser $ \case 
+	(x:xs) | predicate x -> Just (xs, x)
+	_ -> Nothing
+
+char :: Char -> Parser String Char 
+char c = satisfy (== c)
+
+digit1 :: Parser String Int 
+digit1 =  Parser $ \i -> case runParser (satisfy isDigit) i of 
+	Nothing -> Nothing 
+	Just(i', o) -> Just (i', digitToInt o)
+
+digit2 :: Parser String Int 
+digit2 = Parser $ \i -> case runParser (satisfy isDigit) i of 
+	Nothing -> Nothing 
+	Just (i', o) -> Just . fmap digitToInt $ (i', o) 
+
+digit3 :: Parser String Int 
+digit3 = Parser $ \i -> fmap (fmap digitToInt) . runParser (satisfy isDigit) $ i
+
+instance Functor (Parser i) where 
+	fmap f parser = Parser $ fmap (fmap f) . runParser parser 
+
+digit :: Parser String Int 
+digit = digitToInt <$> satisfy isDigit
 
 main :: IO () 
 main = do 
 	putStrLn "parser"
+
+
